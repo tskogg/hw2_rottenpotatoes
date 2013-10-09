@@ -7,56 +7,26 @@ class MoviesController < ApplicationController
   end
 
   def index
-  @movies = Movie.all
-=begin
-     # params.each { |p|
- # session[p] = p
- # }
-# redirect_to movies_path(params => session)
-# end
+    sort = params[:sort] || session[:sort]
+    case sort
+    when 'title'
+      ordering,@title_header = {:order => :title}, 'hilite'
+    when 'release_date'
+      ordering,@date_header = {:order => :release_date}, 'hilite'
+    end
+    @all_ratings = Movie.all_ratings
+    @selected_ratings = params[:ratings] || session[:ratings] || {}
     
-    @movies = Movie.all
-    @redirect = 0
-    if(@checked != nil)
-      @movies = @movies.find_all{ |m| @checked.has_key?(m.rating) and @checked[m.rating]==true}
+    if @selected_ratings == {}
+      @selected_ratings = Hash[@all_ratings.map {|rating| [rating, rating]}]
     end
     
-    
-   if(params[:sort].to_s == 'title')
-    session[:sort] = params[:sort]
-    @movies = @movies.sort_by{|m| m.title }
-   elsif(params[:sort].to_s == 'release')
-    session[:sort] = params[:sort]
-    @movies = @movies.sort_by{|m| m.release_date.to_s }
-   elsif(session.has_key?(:sort) )
-    params[:sort] = session[:sort]
-    @redirect = 1
-   end
-    
-    
-    if(params[:ratings] != nil)
-      session[:ratings] = params[:ratings]
-      @movies = @movies.find_all{ |m| params[:ratings].has_key?(m.rating) }
-    elsif(session.has_key?(:ratings) )
-      params[:ratings] = session[:ratings]
-      @redirect =1
+    if params[:sort] != session[:sort] or params[:ratings] != session[:ratings]
+      session[:sort] = sort
+      session[:ratings] = @selected_ratings
+      redirect_to :sort => sort, :ratings => @selected_ratings and return
     end
-    
-    if(@redirect ==1)
-    redirect_to movies_path(:sort=>params[:sort], :ratings =>params[:ratings] )
-    end
-
-    @checked = {}
-    @all_ratings = ['G','PG','PG-13','R']
-
-    @all_ratings.each { |rating|
-      if params[:ratings] == nil
-        @checked[rating] = false
-      else
-        @checked[rating] = params[:ratings].has_key?(rating)
-      end
-    }
-=end
+    @movies = Movie.find_all_by_rating(@selected_ratings.keys, ordering)
   end
 
   def new
