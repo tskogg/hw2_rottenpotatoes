@@ -7,26 +7,38 @@ class MoviesController < ApplicationController
   end
 
   def index
-    sort = params[:sort] || session[:sort]
-    case sort
-    when 'title'
-		ordering,@title_header ={:order => :title}, 'hilite'
-	when 'release_date'
-		ordering,@date_header = {:order => :release_date}, 'hilite'
-	end
-	@all_ratings = Movie.all_ratings
-	@selected_ratings = params[:ratings] || session[:ratings] || {}
-	
-	if @selected_ratings == {}
-		@selected_ratings = Hash[@all_ratings.map {|rating| [rating, rating]}]
-	end
-	
-	if params[:sort] != session[:sort] or params[:ratings] != session[:ratings]
-		session[:sort] = sort
-		session[:ratings] = @selected_ratings
-		redirect_to :sort =? sort, :ratings => @selected_ratings and return
-	end
-	@movies = Movie.find_all_by_rating(@selected_ratings.keys, ordering)
+
+    if params[:sort].nil? && params[:ratings].nil? &&
+        (!session[:sort].nil? || !session[:ratings].nil?)
+      redirect_to movies_path(:sort => session[:sort], :ratings => session[:ratings])
+    end
+
+    @sort = params[:sort]
+    @ratings = params[:ratings]
+    if @ratings.nil?
+      ratings = Movie.ratings
+    else
+      ratings = @ratings.keys
+    end
+
+    @all_ratings = Movie.ratings.inject(Hash.new) do |all_ratings, rating|
+          all_ratings[rating] = @ratings.nil? ? false : @ratings.has_key?(rating)
+          all_ratings
+      end
+      
+    if !@sort.nil?
+      begin
+        @movies = Movie.order("#{@sort} ASC").find_all_by_rating(ratings)
+      rescue ActiveRecord::StatementInvalid
+        flash[:warning] = "Movies cannot be sorted by #{@sort}."
+        @movies = Movie.find_all_by_rating(ratings)
+      end
+    else
+      @movies = Movie.find_all_by_rating(ratings)
+    end
+
+    session[:sort] = @sort
+    session[:ratings] = @ratings
   end
 
   def new
