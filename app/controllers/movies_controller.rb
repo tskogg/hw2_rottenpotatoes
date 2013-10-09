@@ -7,7 +7,8 @@ class MoviesController < ApplicationController
   end
 
   def index
-
+  @movies = Movie.all
+=begin
      # params.each { |p|
  # session[p] = p
  # }
@@ -55,6 +56,7 @@ class MoviesController < ApplicationController
         @checked[rating] = params[:ratings].has_key?(rating)
       end
     }
+=end
   end
 
   def new
